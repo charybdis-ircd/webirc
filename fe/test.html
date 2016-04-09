@@ -1,0 +1,13 @@
+<html>
+<body>
+<script src="js/webirc.js"></script>
+<script>
+  var conn = new webirc.connection({
+    endpoint: "ws://irc.charybdis.io:16667/",
+    onmessage: function (conn, msg) {
+      console.log(conn, msg);
+    }
+  });
+</script>
+</body>
+</html>
