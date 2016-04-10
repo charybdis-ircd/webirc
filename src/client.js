@@ -192,8 +192,8 @@ webirc.client = function (cfg, sel, sel_sb) {
 
   // rawlog handlers
   cli.signal_attach("irc input", function (cli, conn, event) {
-    cli.signal_dispatch("irc command " + event.command, cli, conn, event);
     cli.rawlog_buf.write("<< " + event.raw);
+    cli.signal_dispatch("irc command " + event.command, cli, conn, event);
 
     if (!cli.signal_count("irc command " + event.command))
       cli.root_buf.write("unhandled input: " + event.raw);
