@@ -132,7 +132,7 @@ webirc.client = function (cfg, sel) {
       if (input[0] == "/") {
         return cli.command_dispatch.apply(null, input.slice(1).split(" "));
       }
-      cli.conn.send("PRIVMSG " + current_buffer + " :" + input);
+      cli.conn.send("PRIVMSG " + cli.current_buffer.name + " :" + input);
     },
     buffer_new: function (name) {
       return new webirc.buffer(cli, name);
