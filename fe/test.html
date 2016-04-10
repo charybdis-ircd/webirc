@@ -1,13 +1,11 @@
 <html>
 <body>
+<div id="client-container"></div>
 <script src="js/webirc.js"></script>
 <script>
-  var conn = new webirc.connection({
+  var cli = webirc.build_client({
     endpoint: "ws://irc.charybdis.io:16667/",
-    onmessage: function (conn, msg) {
-      console.log(conn, msg);
-    }
-  });
+  }, '#client-container');
 </script>
 </body>
 </html>
