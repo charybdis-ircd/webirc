@@ -77,11 +77,12 @@ webirc.connection = function (cfg) {
   };
   return conn;
 };
-webirc.client = function (cfg, sel) {
+webirc.client = function (cfg, sel, sel_sb) {
   var cli = {
     conn: null,
     connected: false,
     root: sel,
+    root_sb: sel_sb,
     commands: {},
     signals: {},
     buffers: [],
@@ -171,7 +172,7 @@ webirc.client = function (cfg, sel) {
     onopen: cli.onopen,
     onmessage: cli.onmessage,
   });
-  cli.ui = new webirc.ui(cli, cli.root);
+  cli.ui = new webirc.ui(cli, cli.root, cli.root_sb);
   cli.root_buf = cli.buffer_new('Server');
   cli.root_buf.switch_to();
 
@@ -183,10 +184,84 @@ webirc.client = function (cfg, sel) {
 
   return cli;
 };
-webirc.ui = function(cli, selector) {
+webirc.ui_sidebar = function (cli, sel) {
+  var sb = {
+    root: sel,
+    tiles: [],
+    tile: function (buffer) {
+      var tile = {
+        buffer: buffer,
+        construct: function () {
+          tile.root = document.createElement('div');
+          tile.root.classList.add("webirc-tile");
+
+          tile.badge = document.createElement('span');
+          tile.badge.classList.add("webirc-tile-badge");
+
+          tile.name = document.createTextNode(buffer.name);
+
+          tile.root.appendChild(tile.name);
+          tile.root.appendChild(tile.badge);
+
+          tile.root.addEventListener('click', function () {
+            tile.buffer.switch_to();
+          });
+        },
+        set_active: function () {
+          tile.root.classList.add("webirc-tile-active");
+        },
+        set_inactive: function () {
+          tile.root.classList.remove("webirc-tile-active");
+        },
+      };
+
+      tile.construct();
+      return tile;
+    },
+    tile_attach: function (buffer) {
+      var tile = new sb.tile(buffer);
+      console.log(sb);
+      sb.root.appendChild(tile.root);
+      sb.tiles.push(tile);
+      return tile;
+    },
+    tile_lookup: function (buffer) {
+      for (var tile of sb.tiles) {
+        if (buffer == tile.buffer)
+          return tile;
+      }
+      return null;
+    },
+    tile_clear_active: function (buffer) {
+      for (var tile of sb.tiles) {
+        tile.set_inactive();
+      }
+    },
+    tile_set_active: function (buffer) {
+      sb.tile_clear_active();
+      var tile = sb.tile_lookup(buffer);
+      if (!tile)
+        return;
+      tile.set_active();
+    }
+  };
+
+  cli.signal_attach("buffer new", function (buffer) {
+    sb.tile_attach(buffer);
+  });
+
+  cli.signal_attach("buffer switch", function (buffer) {
+    sb.tile_clear_active();
+    sb.tile_set_active(buffer);
+  });
+
+  return sb;
+};
+webirc.ui = function (cli, selector, sel_sb) {
   var ui = {
     cli: cli,
-    root: selector
+    root: selector,
+    root_sb: sel_sb,
   };
 
   ui.bufholder = document.createElement('div');
@@ -201,6 +276,9 @@ webirc.ui = function(cli, selector) {
   ui.inputbox.setAttribute('id', 'webirc-input');
   ui.ic.appendChild(ui.inputbox);
 
+  ui.sidebar = new webirc.ui_sidebar(cli, ui.root_sb);
+
+  // XXX - IE
   window.addEventListener("keyup", function (e) {
     if (e.code != 'Enter')
       return;
@@ -214,12 +292,17 @@ webirc.ui = function(cli, selector) {
 
   return ui;
 };
-webirc.build_client = function (cfg, selector) {
-  var sel = document.querySelector(selector);
+webirc.build_client = function (cfg, selector_main, selector_sidebar) {
+  var sel = document.querySelector(selector_main);
   if (!sel) {
-    throw new Error('selector ' + selector + ' was not found');
+    throw new Error('selector ' + selector_main + ' was not found');
   }
 
-  var cli = new webirc.client(cfg, sel);
+  var sel_sb = document.querySelector(selector_sidebar);
+  if (!sel_sb) {
+    throw new Error('selector ' + selector_sidebar + ' was not found');
+  }
+
+  var cli = new webirc.client(cfg, sel, sel_sb);
   return cli;
 };

@@ -41,3 +41,10 @@ html, body {
 .webirc-buffer-hidden {
   display: none;
 }
+.webirc-tile {
+  line-height: 200%;
+}
+.webirc-tile-active {
+  background: #333;
+  color: #ccc;
+}
