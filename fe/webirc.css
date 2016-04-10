@@ -1,0 +1,35 @@
+* {
+  font-family: sans-serif;
+}
+html, body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: #333;
+}
+#client-container {
+  display: flex;
+  flex-direction: column;
+  flex-flow: column nowrap;
+  height: 100%;
+}
+#webirc-buffer-container {
+  background: #eee;
+  flex: 1;
+  overflow-y: scroll;
+  -webkit-box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
+  -moz-box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
+  box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
+}
+#webirc-input-container {
+  flex: none;
+}
+#webirc-input {
+  width: calc(100% - 0.25em);
+  border: none;
+  font-size: 18px;
+}
+.webirc-buffer-hidden {
+  display: none;
+}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebIRC</title>
+    <link rel="stylesheet" href="webirc.css" type="text/css" media="screen">
+  </head>
+  <body>
+    <div id="client-container"></div>
+    <script src="js/webirc.js"></script>
+    <script>
+      var cli = webirc.build_client({
+        endpoint: "ws://irc.charybdis.io:16667/",
+      }, '#client-container');
+    </script>
+  </body>
+</html>
