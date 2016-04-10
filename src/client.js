@@ -1,4 +1,55 @@
 webirc = webirc || {};
+webirc.eventtypes = {
+  EVENT_SERVER: 0,
+  EVENT_MESSAGE: 1,
+  EVENT_NOTICE: 2,
+  EVENT_CHANNEL: 3
+};
+webirc.buffer = function (cli, name) {
+  var buf = {
+    owner: cli,
+    name: name,
+    construct: function () {
+      buf.dom = document.createElement('div');
+      buf.dom.classList.add('webirc-buffer');
+      buf.dom.classList.add('webirc-buffer-hidden');
+    },
+    active: false,
+    write: function (text) {
+      var el = document.createElement('div');
+      el.appendChild(document.createTextNode(text));
+      buf.dom.appendChild(el);
+    },
+    write_error: function (text) {
+      buf.write("* " + text);
+    },
+    switch_to: function () {
+      for (var buffer of buf.owner.buffers) {
+        buffer.active = false;
+        buffer.dom.classList.add('webirc-buffer-hidden');
+      }
+      buf.dom.classList.remove('webirc-buffer-hidden');
+      buf.active = true;
+      buf.owner.signal_dispatch("buffer switch", buf);
+    },
+    close: function () {
+      for (var i = 0; i < buf.owner.buffers.length; i++) {
+        if (buf.owner.buffers[i] === buf) {
+          buf.owner.buffers.splice(i, 1);
+          break;
+        }
+      }
+      buf.owner.signal_dispatch("buffer close", buf);
+      delete buf;
+    }
+  };
+
+  buf.construct();
+  buf.owner.buffers.push(buf);
+  buf.owner.signal_dispatch("buffer new", buf);
+
+  return buf;
+};
 webirc.connection = function (cfg) {
   var conn = {
     endpoint: cfg.endpoint,
@@ -26,14 +77,21 @@ webirc.connection = function (cfg) {
   };
   return conn;
 };
-webirc.client = function (cfg) {
+webirc.client = function (cfg, sel) {
   var cli = {
     conn: null,
     connected: false,
+    root: sel,
     commands: {},
     signals: {},
     buffers: [],
     current_buffer: null,
+    command_attach: function (cmdname, callable) {
+      cmdname = cmdname.toLowerCase();
+      if (cli.commands[cmdname])
+        console.log("warning: replacing command handler for command: " + cmdname);
+      cli.commands[cmdname] = callable;
+    },
     command_dispatch: function (cmdname) {
       var command = cli.commands[cmdname.toLowerCase()];
       var args = Array.prototype.slice.call(arguments, 1);
@@ -75,10 +133,37 @@ webirc.client = function (cfg) {
         return cli.command_dispatch.apply(null, input.slice(1).split(" "));
       }
       cli.conn.send("PRIVMSG " + current_buffer + " :" + input);
-    }
+    },
+    buffer_new: function (name) {
+      return new webirc.buffer(cli, name);
+    },
+    buffer_find: function (name) {
+      for (var buffer of cli.buffers) {
+        if (buffer.name == name)
+          return buffer;
+      }
+      return null;
+    },
+    buffer_close: function (name) {
+      var buf = cli.buffer_find(name);
+      if (buf)
+        buf.close();
+    },
   }
+  cli.signal_attach("buffer switch", function (buf) {
+    cli.current_buffer = buf;
+  });
   cli.signal_attach("irc command JOIN", function(cli, conn, event) {
-    current_buffer = event.parameters[0];
+    var buf = cli.buffer_new(event.parameters[0]);
+    buf.switch_to();
+  });
+  cli.command_attach("buffer", function (args) {
+    var buf = cli.buffer_find(args[0]);
+    if (!buf) {
+      cli.current_buffer.write_error("No buffer found for '" + args[0] + "'");
+      return;
+    }
+    buf.switch_to();
   });
   cli.conn = new webirc.connection({
     endpoint: cfg.endpoint,
@@ -87,7 +172,47 @@ webirc.client = function (cfg) {
     onopen: cli.onopen,
     onmessage: cli.onmessage,
   });
+  cli.ui = new webirc.ui(cli, cli.root);
+  cli.root_buf = cli.buffer_new('Server');
+  cli.root_buf.switch_to();
+
+  // XXX temporary
+  cli.signal_attach("irc input", function (cli, conn, event) {
+    cli.current_buffer.write(event.raw);
+  });
+
   return cli;
+};
+webirc.ui = function(cli, selector) {
+  var ui = {
+    cli: cli,
+    root: selector
+  };
+
+  ui.bufholder = document.createElement('div');
+  ui.bufholder.setAttribute('id', 'webirc-buffer-container');
+  ui.root.appendChild(ui.bufholder);
+
+  ui.ic = document.createElement('div');
+  ui.ic.setAttribute('id', 'webirc-input-container');
+  ui.root.appendChild(ui.ic);
+
+  ui.inputbox = document.createElement('input');
+  ui.inputbox.setAttribute('id', 'webirc-input');
+  ui.ic.appendChild(ui.inputbox);
+
+  window.addEventListener("keyup", function (e) {
+    if (e.code != 'Enter')
+      return;
+    cli.process_input(ui.inputbox.value);
+    ui.inputbox.value = "";
+  });
+
+  cli.signal_attach("buffer new", function (buf) {
+    ui.bufholder.appendChild(buf.dom);
+  });
+
+  return ui;
 };
 webirc.build_client = function (cfg, selector) {
   var sel = document.querySelector(selector);
@@ -95,29 +220,6 @@ webirc.build_client = function (cfg, selector) {
     throw new Error('selector ' + selector + ' was not found');
   }
 
-  var buf = document.createElement('div');
-  buf.setAttribute('id', 'webirc-buffer');
-  sel.appendChild(buf);
-  var ic = document.createElement('div');
-  ic.setAttribute('id', 'webirc-input-container');
-  sel.appendChild(ic);
-  var input = document.createElement('input');
-  input.setAttribute('id', 'webirc-input');
-  ic.appendChild(input);
-
-  var cli = new webirc.client(cfg);
-  window.addEventListener("keyup", function (e) {
-    if (e.code != 'Enter')
-      return;
-    cli.process_input(input.value);
-    input.value = "";
-  });
-
-  cli.signal_attach("irc input", function (cli, conn, event) {
-    var el = document.createElement('div');
-    el.appendChild(document.createTextNode(event.raw));
-    buf.appendChild(el);
-  });
-
+  var cli = new webirc.client(cfg, sel);
   return cli;
 };
