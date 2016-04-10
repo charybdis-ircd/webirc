@@ -4,11 +4,20 @@
 html, body {
   margin: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   color: #333;
+  width: 100%;
+}
+#client-sidebar {
+  flex: 1;
+  height: 100%;
+  max-width: 20em;
+  background: #eee;
+  overflow-y: scroll;
 }
 #client-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
   flex-flow: column nowrap;
@@ -18,9 +27,8 @@ html, body {
   background: #eee;
   flex: 1;
   overflow-y: scroll;
-  -webkit-box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
-  -moz-box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
-  box-shadow: inset 0px 0px 40px -10px rgba(0,0,0,0.75);
+  border-left: 1px solid #000;
+  border-bottom: 1px solid #000;
 }
 #webirc-input-container {
   flex: none;
