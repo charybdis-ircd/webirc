@@ -84,7 +84,9 @@ webirc.irc.parse = function (line) {
 
     pos = pos + prefix.length + 1;
   } else {
-    throw parse_error;
+    // messages without a prefix should be assumed to come from a server.
+    userinfo.is_user = false;
+    userinfo.sender = null;
   }
 
   /**
