@@ -15,6 +15,7 @@ html, body {
   max-width: 20em;
   background: #eee;
   overflow-y: scroll;
+  border-right: 1px #000 solid;
 }
 #client-container {
   flex: 1;
@@ -24,14 +25,12 @@ html, body {
   height: 100%;
 }
 #webirc-buffer-container {
-  background: #eee;
   flex: 1;
   overflow-y: scroll;
-  border-left: 1px solid #000;
-  border-bottom: 1px solid #000;
 }
 #webirc-input-container {
   flex: none;
+  border-top: 1px #000 solid;
 }
 #webirc-input {
   width: calc(100% - 0.25em);
