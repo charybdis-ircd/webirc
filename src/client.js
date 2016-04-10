@@ -122,7 +122,6 @@ webirc.client = function (cfg, sel) {
     },
     onmessage: function (conn, event) {
       cli.signal_dispatch("irc input", cli, conn, event);
-      cli.signal_dispatch("irc command " + event.command, cli, conn, event);
     },
     process_input: function (input) {
       if (!cli.connected) {
@@ -176,8 +175,9 @@ webirc.client = function (cfg, sel) {
   cli.root_buf = cli.buffer_new('Server');
   cli.root_buf.switch_to();
 
-  // XXX temporary
+  // rawlog handler
   cli.signal_attach("irc input", function (cli, conn, event) {
+    cli.signal_dispatch("irc command " + event.command, cli, conn, event);
     cli.current_buffer.write(event.raw);
   });
 
