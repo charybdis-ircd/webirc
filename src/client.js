@@ -175,11 +175,13 @@ webirc.client = function (cfg, sel, sel_sb) {
   cli.ui = new webirc.ui(cli, cli.root, cli.root_sb);
   cli.root_buf = cli.buffer_new('Server');
   cli.root_buf.switch_to();
+  cli.rawlog_buf = cli.buffer_new('Raw Log');
 
   // rawlog handler
   cli.signal_attach("irc input", function (cli, conn, event) {
     cli.signal_dispatch("irc command " + event.command, cli, conn, event);
     cli.current_buffer.write(event.raw);
+    cli.rawlog_buf.write(event.raw);
   });
 
   return cli;
