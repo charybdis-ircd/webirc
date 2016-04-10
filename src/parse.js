@@ -103,7 +103,8 @@ webirc.irc.parse = function (line) {
       return {
         tags: tags,
         userinfo: userinfo,
-        command: command
+        command: command,
+        raw: line
       }
     }
     throw parse_error;
@@ -153,6 +154,7 @@ webirc.irc.parse = function (line) {
     tags: tags,
     userinfo: userinfo,
     command: command,
-    parameters: params
+    parameters: params,
+    raw: line
   }
 }
