@@ -161,6 +161,35 @@ webirc.client = function (cfg, sel, sel_sb) {
       if (buf)
         buf.close();
     },
+    rawlog: function () {
+      var buf = cli.buffer_new('Raw Log');
+      cli.signal_attach("irc input", function (cli, conn, event) {
+        buf.write("<< " + event.raw);
+      });
+      cli.signal_attach("irc output", function (cli, conn, data) {
+        buf.write(">> " + data);
+      });
+      return buf;
+    },
+    setup_commands: function () {
+      cli.signal_attach("irc input", function (cli, conn, event) {
+        if ("0123456789".indexOf(event.command[0]) == -1) {
+          cli.signal_dispatch("irc command " + event.command, cli, conn, event);
+          if (!cli.signal_count("irc command " + event.command)) {
+            cli.root_buf.write("unhandled input: " + event.raw);
+          }
+        } else {
+          cli.signal_dispatch("irc numeric " + event.command, cli, conn, event);
+          if (!cli.signal_count("irc numeric " + event.command)) {
+            cli.root_buf.write(event.command + ": " + event.parameters.slice(1).join(" "));
+          }
+        }
+      });
+
+      cli.signal_attach("irc command PING", function (cli, conn, event) {
+        cli.conn.send("PONG :" + event.parameters[0]);
+      });
+    }
   }
   cli.signal_attach("buffer switch", function (buf) {
     cli.current_buffer = buf;
@@ -188,23 +217,9 @@ webirc.client = function (cfg, sel, sel_sb) {
   cli.ui = new webirc.ui(cli, cli.root, cli.root_sb);
   cli.root_buf = cli.buffer_new('Server');
   cli.root_buf.switch_to();
-  cli.rawlog_buf = cli.buffer_new('Raw Log');
 
-  // rawlog handlers
-  cli.signal_attach("irc input", function (cli, conn, event) {
-    cli.rawlog_buf.write("<< " + event.raw);
-    cli.signal_dispatch("irc command " + event.command, cli, conn, event);
-
-    if (!cli.signal_count("irc command " + event.command))
-      cli.root_buf.write("unhandled input: " + event.raw);
-  });
-  cli.signal_attach("irc output", function (cli, conn, data) {
-    cli.rawlog_buf.write(">> " + data);
-  });
-
-  cli.signal_attach("irc command PING", function (cli, conn, event) {
-    cli.conn.send("PONG :" + event.parameters[0]);
-  });
+  cli.rawlog_buf = new cli.rawlog();
+  cli.setup_commands();
 
   return cli;
 };
