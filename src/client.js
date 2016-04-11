@@ -15,15 +15,18 @@ webirc.buffer = function (cli, name) {
       buf.dom.classList.add('webirc-buffer-hidden');
     },
     active: false,
-    write: function (text) {
-      var el = document.createElement('div');
-      el.appendChild(document.createTextNode(text));
+    write: function (el) {
       buf.dom.appendChild(el);
       if (buf.active)
         el.scrollIntoView();
     },
+    write_text: function (text) {
+      var el = document.createElement('div');
+      el.appendChild(document.createTextNode(text));
+      buf.write(el);
+    },
     write_error: function (text) {
-      buf.write("* " + text);
+      buf.write_text("* " + text);
     },
     switch_to: function () {
       for (var buffer of buf.owner.buffers) {
@@ -166,10 +169,10 @@ webirc.client = function (cfg, sel, sel_sb) {
     rawlog: function () {
       var buf = cli.buffer_new('Raw Log');
       cli.signal_attach("irc input", function (cli, conn, event) {
-        buf.write("<< " + event.raw);
+        buf.write_text("<< " + event.raw);
       });
       cli.signal_attach("irc output", function (cli, conn, data) {
-        buf.write(">> " + data);
+        buf.write_text(">> " + data);
       });
       return buf;
     },
@@ -178,12 +181,12 @@ webirc.client = function (cfg, sel, sel_sb) {
         if ("0123456789".indexOf(event.command[0]) == -1) {
           cli.signal_dispatch("irc command " + event.command, cli, conn, event);
           if (!cli.signal_count("irc command " + event.command)) {
-            cli.root_buf.write("unhandled input: " + event.raw);
+            cli.root_buf.write_text("unhandled input: " + event.raw);
           }
         } else {
           cli.signal_dispatch("irc numeric " + event.command, cli, conn, event);
           if (!cli.signal_count("irc numeric " + event.command)) {
-            cli.root_buf.write(event.command + ": " + event.parameters.slice(1).join(" "));
+            cli.root_buf.write_text(event.command + ": " + event.parameters.slice(1).join(" "));
           }
         }
       });
