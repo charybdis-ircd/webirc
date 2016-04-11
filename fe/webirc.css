@@ -42,6 +42,7 @@ html, body {
 }
 .webirc-tile {
   line-height: 200%;
+  cursor: default;
 }
 .webirc-tile-active {
   background: #333;
@@ -64,4 +65,14 @@ html, body {
 }
 .webirc-error {
   color: red;
+}
+.webirc-buffer-line {
+  margin-top: 0.25em;
+  margin-bottom: 0.5em;
+}
+.webirc-message-event {
+  margin-left: 0.25em;
+}
+.webirc-message-source {
+  font-weight: bold;
 }
