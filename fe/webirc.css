@@ -13,9 +13,10 @@ html, body {
   flex: 1;
   height: 100%;
   max-width: 20em;
-  background: #eee;
+  background: #003D5A;
   overflow-y: scroll;
   border-right: 1px #000 solid;
+  color: #ccc;
 }
 #client-container {
   flex: 1;
@@ -43,10 +44,12 @@ html, body {
 .webirc-tile {
   line-height: 200%;
   cursor: default;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }
 .webirc-tile-active {
-  background: #333;
-  color: #ccc;
+  background: #0078B1;
+  color: #fff;
 }
 .webirc-buffer-time {
   float: right;
