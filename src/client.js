@@ -169,6 +169,10 @@ webirc.client = function (cfg, sel, sel_sb) {
         return cli.command_dispatch.apply(null, input.slice(1).split(" "));
       }
       cli.conn.send("PRIVMSG " + cli.current_buffer.name + " :" + input);
+      var signame = 'irc client message';
+      if (cli.current_buffer.name[0] == '#')
+        signame = 'irc channel message';
+      cli.signal_dispatch(signame, cli, cli.conn, {userinfo: {nick: cli.conn.nickname}, parameters: [cli.current_buffer.name, input]});
     },
     buffer_new: function (name) {
       return new webirc.buffer(cli, name);
@@ -228,11 +232,11 @@ webirc.client = function (cfg, sel, sel_sb) {
 
         // if event.parameters[1][0] is \001, it is CTCP.
         if (event.parameters[1][0] == '\x01') {
-          event.paramaters[1] = event.parameters[1].substr(1, event.paramters[1].length - 2);
+          event.parameters[1] = event.parameters[1].substr(1, event.parameters[1].length - 2);
           msgtype = 'ctcp';
         }
 
-        if (event.paramaters[0][0] == '#') {
+        if (event.parameters[0][0] == '#') {
           target = 'channel';
         }
 
@@ -258,8 +262,39 @@ webirc.client = function (cfg, sel, sel_sb) {
       });
 
       cli.signal_attach("irc channel part", function (cli, conn, event) {
-        buf.write_event(event.userinfo.nick + " left");
+        var buf = cli.buffer_find(event.parameters[0]);
+        if (buf)
+          buf.write_event(event.userinfo.nick + " left");
       });
+
+      var message_handler_generic = function (cli, conn, event) {
+        var buf = cli.buffer_find(event.parameters[0]);
+        if (!buf) {
+          if (event.parameters[0][0] != '#')
+            buf = cli.buffer_new(event.parameters[0]);
+          else
+            return;
+        }
+
+        var el = document.createElement('div');
+        el.classList.add('webirc-message-event');
+
+        var source = document.createElement('div');
+        source.classList.add('webirc-message-source');
+        source.appendChild(document.createTextNode(event.userinfo.nick || "Server"));
+
+        var message = document.createElement('div');
+        message.classList.add('webirc-message-body');
+        message.appendChild(document.createTextNode(event.parameters[1]));
+
+        el.appendChild(source);
+        el.appendChild(message);
+
+        buf.write(el);
+      };
+
+      cli.signal_attach("irc channel message", message_handler_generic);
+      cli.signal_attach("irc client message", message_handler_generic);
     },
   }
   cli.signal_attach("buffer switch", function (buf) {
