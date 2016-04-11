@@ -19,6 +19,8 @@ webirc.buffer = function (cli, name) {
       var el = document.createElement('div');
       el.appendChild(document.createTextNode(text));
       buf.dom.appendChild(el);
+      if (buf.active)
+        el.scrollIntoView();
     },
     write_error: function (text) {
       buf.write("* " + text);
