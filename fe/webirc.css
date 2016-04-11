@@ -47,3 +47,21 @@ html, body {
   background: #333;
   color: #ccc;
 }
+.webirc-buffer-time {
+  float: right;
+  font-size: 75%;
+  color: #999;
+  margin-right: 0.25em;
+  margin-top: 0.1em;
+  margin-left: 1em;
+}
+.webirc-buffer {
+  margin: 0.25em;
+}
+.webirc-buffer-event {
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+}
+.webirc-error {
+  color: red;
+}

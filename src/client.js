@@ -16,17 +16,36 @@ webirc.buffer = function (cli, name) {
     },
     active: false,
     write: function (el) {
-      buf.dom.appendChild(el);
+      var p = document.createElement('div');
+      p.classList.add('webirc-buffer-line');
+      var tm = document.createElement('span');
+      tm.classList.add('webirc-buffer-time');
+      var date = new Date();
+      tm.appendChild(document.createTextNode(date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()));
+      p.appendChild(tm);
+      p.appendChild(el);
+      buf.dom.appendChild(p);
       if (buf.active)
-        el.scrollIntoView();
+        p.scrollIntoView();
     },
     write_text: function (text) {
       var el = document.createElement('div');
       el.appendChild(document.createTextNode(text));
       buf.write(el);
     },
+    write_event: function (text, evcls) {
+      var tc = document.createElement('div');
+      var event = document.createElement('span');
+      event.classList.add('webirc-buffer-event');
+      event.appendChild(document.createTextNode('\u2022'));
+      tc.appendChild(event);
+      tc.appendChild(document.createTextNode(text));
+      if (evcls)
+        tc.classList.add(evcls);
+      buf.write(tc);
+    },
     write_error: function (text) {
-      buf.write_text("* " + text);
+      buf.write_event(text, 'webirc-error');
     },
     switch_to: function () {
       for (var buffer of buf.owner.buffers) {
@@ -194,14 +213,57 @@ webirc.client = function (cfg, sel, sel_sb) {
       cli.signal_attach("irc command PING", function (cli, conn, event) {
         cli.conn.send("PONG :" + event.parameters[0]);
       });
-    }
+
+      cli.signal_attach("irc command NOTICE", function (cli, conn, event) {
+        if (!event.userinfo.is_user)
+          return cli.signal_dispatch("irc server notice", cli, conn, event);
+        if (event.parameters[0][0] == '#')
+          return cli.signal_dispatch("irc channel notice", cli, conn, event);
+        cli.signal_dispatch("irc client notice", cli, conn, event);
+      });
+
+      cli.signal_attach("irc command PRIVMSG", function (cli, conn, event) {
+        var msgtype = 'message';
+        var target = 'client';
+
+        // if event.parameters[1][0] is \001, it is CTCP.
+        if (event.parameters[1][0] == '\x01') {
+          event.paramaters[1] = event.parameters[1].substr(1, event.paramters[1].length - 2);
+          msgtype = 'ctcp';
+        }
+
+        if (event.paramaters[0][0] == '#') {
+          target = 'channel';
+        }
+
+        cli.signal_dispatch("irc " + target + " " + msgtype, cli, conn, event);
+      });
+
+      cli.signal_attach("irc command JOIN", function (cli, conn, event) {
+        cli.signal_dispatch("irc channel join", cli, conn, event);
+      });
+
+      cli.signal_attach("irc command PART", function (cli, conn, event) {
+        cli.signal_dispatch("irc channel part", cli, conn, event);
+      });
+    },
+    setup_handlers: function () {
+      cli.signal_attach("irc channel join", function (cli, conn, event) {
+        var buf = cli.buffer_find(event.parameters[0]);
+        if (!buf) {
+          buf = cli.buffer_new(event.parameters[0]);
+          buf.switch_to();
+        }
+        buf.write_event(event.userinfo.nick + " joined");
+      });
+
+      cli.signal_attach("irc channel part", function (cli, conn, event) {
+        buf.write_event(event.userinfo.nick + " left");
+      });
+    },
   }
   cli.signal_attach("buffer switch", function (buf) {
     cli.current_buffer = buf;
-  });
-  cli.signal_attach("irc command JOIN", function(cli, conn, event) {
-    var buf = cli.buffer_new(event.parameters[0]);
-    buf.switch_to();
   });
   cli.command_attach("buffer", function (args) {
     var buf = cli.buffer_find(args[0]);
@@ -225,6 +287,7 @@ webirc.client = function (cfg, sel, sel_sb) {
 
   cli.rawlog_buf = new cli.rawlog();
   cli.setup_commands();
+  cli.setup_handlers();
 
   return cli;
 };
