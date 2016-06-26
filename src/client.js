@@ -5,10 +5,12 @@ webirc.eventtypes = {
   EVENT_NOTICE: 2,
   EVENT_CHANNEL: 3
 };
-webirc.buffer = function (cli, name) {
+webirc.buffer = function (cli, name, buffertype, sidebar) {
   var buf = {
     owner: cli,
     name: name,
+    buffertype: buffertype,
+    use_sidebar: sidebar,
     construct: function () {
       buf.dom = document.createElement('div');
       buf.dom.classList.add('webirc-buffer-textview');
@@ -16,6 +18,13 @@ webirc.buffer = function (cli, name) {
       buf.container.classList.add('webirc-buffer-outer');
       buf.container.classList.add('webirc-buffer-hidden');
       buf.container.appendChild(buf.dom);
+
+      buf.sidebar = null;
+      if (buf.use_sidebar) {
+        buf.sidebar = document.createElement('div');
+        buf.sidebar.classList.add('webirc-buffer-sidebar');
+        buf.container.appendChild(buf.sidebar);
+      }
     },
     active: false,
     write: function (el) {
@@ -177,8 +186,8 @@ webirc.client = function (cfg, sel, sel_sb) {
         signame = 'irc channel message';
       cli.signal_dispatch(signame, cli, cli.conn, {userinfo: {nick: cli.conn.nickname}, parameters: [cli.current_buffer.name, input]});
     },
-    buffer_new: function (name) {
-      return new webirc.buffer(cli, name);
+    buffer_new: function (name, btype, sidebar) {
+      return new webirc.buffer(cli, name, btype, sidebar);
     },
     buffer_find: function (name) {
       for (var buffer of cli.buffers) {
@@ -193,7 +202,7 @@ webirc.client = function (cfg, sel, sel_sb) {
         buf.close();
     },
     rawlog: function () {
-      var buf = cli.buffer_new('Raw Log');
+      var buf = cli.buffer_new('Raw Log', 'messages', false);
       cli.signal_attach("irc input", function (cli, conn, event) {
         buf.write_text("<< " + event.raw);
       });
@@ -258,7 +267,7 @@ webirc.client = function (cfg, sel, sel_sb) {
       cli.signal_attach("irc channel join", function (cli, conn, event) {
         var buf = cli.buffer_find(event.parameters[0]);
         if (!buf) {
-          buf = cli.buffer_new(event.parameters[0]);
+          buf = cli.buffer_new(event.parameters[0], 'channel', true);
           buf.switch_to();
         }
         buf.write_event(event.userinfo.nick + " joined");
@@ -274,7 +283,7 @@ webirc.client = function (cfg, sel, sel_sb) {
         var buf = cli.buffer_find(event.parameters[0]);
         if (!buf) {
           if (event.parameters[0][0] != '#')
-            buf = cli.buffer_new(event.parameters[0]);
+            buf = cli.buffer_new(event.parameters[0], 'privmsg', false);
           else
             return;
         }
@@ -320,7 +329,7 @@ webirc.client = function (cfg, sel, sel_sb) {
     onsend: cli.onsend,
   });
   cli.ui = new webirc.ui(cli, cli.root, cli.root_sb);
-  cli.root_buf = cli.buffer_new('Server');
+  cli.root_buf = cli.buffer_new('Server', 'Server', false);
   cli.root_buf.switch_to();
 
   cli.rawlog_buf = new cli.rawlog();
@@ -419,6 +428,7 @@ webirc.ui = function (cli, selector, sel_sb) {
 
   ui.inputbox = document.createElement('input');
   ui.inputbox.setAttribute('id', 'webirc-input');
+  ui.inputbox.setAttribute('placeholder', 'Type a message or command (prefixed with /) here...');
   ui.ic.appendChild(ui.inputbox);
 
   ui.sidebar = new webirc.ui_sidebar(cli, ui.root_sb);

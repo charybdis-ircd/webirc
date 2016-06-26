@@ -15,8 +15,8 @@ html, body {
   max-width: 20em;
   background: #003D5A;
   overflow-y: scroll;
-  border-right: 1px #000 solid;
   color: #ccc;
+  padding: 0.5em;
 }
 #client-container {
   flex: 1;
@@ -31,15 +31,15 @@ html, body {
 }
 #webirc-input-container {
   flex: none;
-  border-top: 1px #000 solid;
 }
 #webirc-input {
-  width: calc(100% - 0.25em);
+  width: calc(100% - 0.5em);
   border: none;
   font-size: 18px;
+  padding: 0.5em 0 0.5em 0.5em;
 }
 .webirc-buffer-hidden {
-  display: none;
+  display: none !important;
 }
 .webirc-tile {
   line-height: 200%;
@@ -60,6 +60,7 @@ html, body {
   margin-left: 1em;
 }
 .webirc-buffer {
+  flex: 1;
   margin: 0.25em;
 }
 .webirc-buffer-event {
@@ -78,4 +79,20 @@ html, body {
 }
 .webirc-message-source {
   font-weight: bold;
+}
+.webirc-buffer-outer {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+.webirc-buffer-sidebar {
+  flex: 1;
+  overflow-y: scroll;
+  max-width: 20em;
+  background: #efefef;
+  padding: 0.5em;
+}
+.webirc-buffer-textview {
+  flex: 1;
+  margin: 0.5em;
 }
