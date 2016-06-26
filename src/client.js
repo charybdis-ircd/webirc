@@ -11,8 +11,11 @@ webirc.buffer = function (cli, name) {
     name: name,
     construct: function () {
       buf.dom = document.createElement('div');
-      buf.dom.classList.add('webirc-buffer');
-      buf.dom.classList.add('webirc-buffer-hidden');
+      buf.dom.classList.add('webirc-buffer-textview');
+      buf.container = document.createElement('div');
+      buf.container.classList.add('webirc-buffer-outer');
+      buf.container.classList.add('webirc-buffer-hidden');
+      buf.container.appendChild(buf.dom);
     },
     active: false,
     write: function (el) {
@@ -50,9 +53,9 @@ webirc.buffer = function (cli, name) {
     switch_to: function () {
       for (var buffer of buf.owner.buffers) {
         buffer.active = false;
-        buffer.dom.classList.add('webirc-buffer-hidden');
+        buffer.container.classList.add('webirc-buffer-hidden');
       }
-      buf.dom.classList.remove('webirc-buffer-hidden');
+      buf.container.classList.remove('webirc-buffer-hidden');
       buf.active = true;
       buf.owner.signal_dispatch("buffer switch", buf);
     },
@@ -429,7 +432,7 @@ webirc.ui = function (cli, selector, sel_sb) {
   });
 
   cli.signal_attach("buffer new", function (buf) {
-    ui.bufholder.appendChild(buf.dom);
+    ui.bufholder.appendChild(buf.container);
   });
 
   return ui;
