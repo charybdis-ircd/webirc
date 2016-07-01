@@ -5,6 +5,53 @@ webirc.eventtypes = {
   EVENT_NOTICE: 2,
   EVENT_CHANNEL: 3
 };
+webirc.person = function (cli, name) {
+  var person = {
+    nickname: name,
+    channels: [],
+    hostmask: null,
+    shared_buffers: [],
+
+    set_nickname: function (newnick) {
+      var oldnick = person.nickname;
+      if (oldnick == newnick)
+        return;
+      person.nickname = newnick;
+      cli.signal_dispatch("person nickname change", person, {old_nickname: oldnick, new_nickname: newnick});
+    },
+    set_hostmask: function (newhostmask) {
+      var oldmask = person.hostmask;
+      if (oldmask == newmask)
+        return;
+      person.hostmask = newhostmask;
+      cli.signal_dispatch("person hostmask change", person, {old_hostmask: oldmask, new_hostmask: newhostmask});
+    },
+    in_channel: function (chname) {
+      for (var channel of person.channels) {
+        if (channel == chname)
+          return true;
+      }
+      return false;
+    },
+    push_channel: function (channel) {
+      if (person.in_channel(channel))
+        return;
+      person.channels.push(channel);
+      cli.signal_dispatch("channel join", channel, person);
+    },
+    pop_channel: function (channel) {
+      for (var i = 0; i < person.channels.length; i++) {
+        if (person.channels[i] == channel) {
+          cli.signal_dispatch("channel leave", channel, person);
+          person.channels.splice(i, 1);
+          return;
+        }
+      }
+    }
+  };
+
+  return person;
+};
 webirc.buffer = function (cli, name, buffertype, sidebar) {
   var buf = {
     owner: cli,
@@ -102,7 +149,7 @@ webirc.buffer = function (cli, name, buffertype, sidebar) {
 
   return buf;
 };
-webirc.connection = function (cfg) {
+webirc.connection = function (cli, cfg) {
   var conn = {
     endpoint: cfg.endpoint,
     nickname: cfg.nickname || "Guest",
@@ -141,6 +188,8 @@ webirc.client = function (cfg, sel, sel_sb) {
     commands: {},
     signals: {},
     buffers: [],
+    people: {},
+    myself: null,
     current_buffer: null,
     command_attach: function (cmdname, callable) {
       cmdname = cmdname.toLowerCase();
@@ -336,7 +385,7 @@ webirc.client = function (cfg, sel, sel_sb) {
     }
     buf.switch_to();
   });
-  cli.conn = new webirc.connection({
+  cli.conn = new webirc.connection(cli, {
     endpoint: cfg.endpoint,
     nickname: cfg.nickname,
     realname: cfg.realname,
