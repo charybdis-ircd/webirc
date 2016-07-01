@@ -17,7 +17,23 @@ webirc.buffer = function (cli, name, buffertype, sidebar) {
       buf.container = document.createElement('div');
       buf.container.classList.add('webirc-buffer-outer');
       buf.container.classList.add('webirc-buffer-hidden');
-      buf.container.appendChild(buf.dom);
+
+      buf.holder = document.createElement('div');
+      buf.holder.classList.add('webirc-buffer-holder');
+      buf.holder.appendChild(buf.dom);
+      buf.container.appendChild(buf.holder);
+
+      buf.inputbox = null;
+      if (true) {
+        buf.ic = document.createElement('div');
+        buf.ic.classList.add('webirc-buffer-input');
+        buf.holder.appendChild(buf.ic);
+
+        buf.inputbox = document.createElement('input');
+        buf.inputbox.classList.add('webirc-input');
+        buf.inputbox.setAttribute('placeholder', 'Type a message or command (prefixed with /) here...');
+        buf.ic.appendChild(buf.inputbox);
+      }
 
       buf.sidebar = null;
       if (buf.use_sidebar) {
@@ -422,23 +438,16 @@ webirc.ui = function (cli, selector, sel_sb) {
   ui.bufholder.setAttribute('id', 'webirc-buffer-container');
   ui.root.appendChild(ui.bufholder);
 
-  ui.ic = document.createElement('div');
-  ui.ic.setAttribute('id', 'webirc-input-container');
-  ui.root.appendChild(ui.ic);
-
-  ui.inputbox = document.createElement('input');
-  ui.inputbox.setAttribute('id', 'webirc-input');
-  ui.inputbox.setAttribute('placeholder', 'Type a message or command (prefixed with /) here...');
-  ui.ic.appendChild(ui.inputbox);
-
   ui.sidebar = new webirc.ui_sidebar(cli, ui.root_sb);
 
   // XXX - IE
   window.addEventListener("keyup", function (e) {
     if (e.code != 'Enter')
       return;
-    cli.process_input(ui.inputbox.value);
-    ui.inputbox.value = "";
+
+    var inputbox = cli.current_buffer.inputbox;
+    cli.process_input(inputbox.value);
+    inputbox.value = "";
   });
 
   cli.signal_attach("buffer new", function (buf) {

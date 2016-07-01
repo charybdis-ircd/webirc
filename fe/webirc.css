@@ -28,10 +28,7 @@ html, body {
   flex: 1;
   overflow-y: scroll;
 }
-#webirc-input-container {
-  flex: none;
-}
-#webirc-input {
+.webirc-input {
   width: calc(100% - 0.5em);
   border: none;
   font-size: 18px;
@@ -99,6 +96,16 @@ html, body {
 }
 .webirc-buffer-textview {
   flex: 1;
+}
+.webirc-buffer-input {
+  flex: 1;
+  border-top: 1px solid #999;
+  max-height: 2em;
+}
+.webirc-buffer-holder {
+  display: flex;
+  flex-direction: column;
+  flex-flow: column nowrap;
+  flex: 1;
   padding: 0.5em;
 }
-
