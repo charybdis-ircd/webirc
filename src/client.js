@@ -266,6 +266,18 @@ webirc.client = function (cfg, sel, sel_sb) {
       if (buf)
         buf.close();
     },
+    person_new: function (name) {
+      cli.people[name] = new webirc.person(name);
+      return cli.people[name]
+    },
+    person_find: function (name) {
+      if (name in cli.people)
+        return cli.people[name];
+      return null;
+    },
+    person_delete: function (name) {
+      delete cli.people[name];
+    },
     rawlog: function () {
       var buf = cli.buffer_new('Raw Log', 'messages', false);
       cli.signal_attach("irc input", function (cli, conn, event) {
