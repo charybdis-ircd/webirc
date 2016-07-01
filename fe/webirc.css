@@ -16,7 +16,6 @@ html, body {
   background: #003D5A;
   overflow-y: scroll;
   color: #ccc;
-  padding: 0.5em;
 }
 #client-container {
   flex: 1;
@@ -44,8 +43,14 @@ html, body {
 }
 .webirc-tile {
   cursor: default;
-  margin: 0.5em 0.5em 0 0.5em;
   padding: 0.5em;
+  margin: 0 0.5em 0 0.5em;
+}
+.webirc-tile:first-child {
+  margin-top: 0.5em;
+}
+.webirc-tile:last-child {
+  margin-bottom: 0.5em;
 }
 .webirc-tile-active {
   background: #0078B1;
@@ -96,3 +101,4 @@ html, body {
   flex: 1;
   padding: 0.5em;
 }
+
