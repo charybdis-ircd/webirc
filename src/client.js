@@ -10,7 +10,6 @@ webirc.person = function (cli, name) {
     nickname: name,
     channels: [],
     hostmask: null,
-    shared_buffers: [],
 
     set_nickname: function (newnick) {
       var oldnick = person.nickname;
@@ -28,13 +27,13 @@ webirc.person = function (cli, name) {
     },
     in_channel: function (chname) {
       for (var channel of person.channels) {
-        if (channel == chname)
+        if (channel.name == chname)
           return true;
       }
       return false;
     },
     push_channel: function (channel) {
-      if (person.in_channel(channel))
+      if (person.in_channel(channel.name))
         return;
       person.channels.push(channel);
       cli.signal_dispatch("channel join", channel, person);
@@ -149,6 +148,23 @@ webirc.buffer = function (cli, name, buffertype, sidebar) {
 
   return buf;
 };
+webirc.channel = function (cli, chname) {
+  var channel = {
+    name: chname,
+    members: {},
+    buffer: cli.buffer_new(chname, 'channel', true),
+    push_person: function (person) {
+      person.push_channel(channel);
+      channel.members[person.nickname] = person;
+    },
+    pop_person: function (person) {
+      person.pop_channel(channel);
+      delete channel.members[person.nickname];
+    }
+  };
+
+  return channel;
+};
 webirc.connection = function (cli, cfg) {
   var conn = {
     endpoint: cfg.endpoint,
@@ -189,6 +205,7 @@ webirc.client = function (cfg, sel, sel_sb) {
     signals: {},
     buffers: [],
     people: {},
+    channels: {},
     myself: null,
     current_buffer: null,
     command_attach: function (cmdname, callable) {
@@ -265,6 +282,22 @@ webirc.client = function (cfg, sel, sel_sb) {
       var buf = cli.buffer_find(name);
       if (buf)
         buf.close();
+    },
+    channel_new: function (name) {
+      var channel = cli.channel_find(name);
+      if (channel)
+        return channel;
+
+      cli.channels[name] = new webirc.channel(cli, name);
+      return cli.channels[name];
+    },
+    channel_find: function (name) {
+      if (name in cli.channels)
+        return cli.channels[name];
+      return null;
+    },
+    channel_delete: function (name) {
+      delete cli.channels[name];
     },
     person_new: function (name) {
       var person = cli.person_find(name);
@@ -346,28 +379,25 @@ webirc.client = function (cfg, sel, sel_sb) {
     },
     setup_handlers: function () {
       cli.signal_attach("irc channel join", function (cli, conn, event) {
-        var buf = cli.buffer_find(event.parameters[0]);
-        if (!buf) {
-          buf = cli.buffer_new(event.parameters[0], 'channel', true);
-          buf.switch_to();
+        var chan = cli.channel_find(event.parameters[0]);
+        if (!chan) {
+          chan = cli.channel_new(event.parameters[0]);
+          chan.buffer.switch_to();
         }
-        buf.write_event(event.userinfo.nick + " joined");
-      });
+        chan.buffer.write_event(event.userinfo.nick + " joined");
 
-      cli.signal_attach("irc channel join", function (cli, conn, event) {
         var person = cli.person_new(event.userinfo.nick);
-        person.push_channel(event.parameters[0]);
+        chan.push_person(person);
       });
 
       cli.signal_attach("irc channel part", function (cli, conn, event) {
-        var buf = cli.buffer_find(event.parameters[0]);
-        if (buf)
-          buf.write_event(event.userinfo.nick + " left");
-      });
+        var chan = cli.channel_find(event.parameters[0]);
+        if (chan) {
+          var person = cli.person_new(event.userinfo.nick);
+          chan.pop_person(person);
 
-      cli.signal_attach("irc channel part", function (cli, conn, event) {
-        var person = cli.person_new(event.userinfo.nick);
-        person.pop_channel(event.parameters[0]);
+          chan.buffer.write_event(event.userinfo.nick + " left");
+        }
       });
 
       var message_handler_generic = function (cli, conn, event) {
