@@ -267,7 +267,11 @@ webirc.client = function (cfg, sel, sel_sb) {
         buf.close();
     },
     person_new: function (name) {
-      cli.people[name] = new webirc.person(name);
+      var person = cli.person_find(name);
+      if (person)
+        return person;
+
+      cli.people[name] = new webirc.person(cli, name);
       return cli.people[name]
     },
     person_find: function (name) {
@@ -350,10 +354,20 @@ webirc.client = function (cfg, sel, sel_sb) {
         buf.write_event(event.userinfo.nick + " joined");
       });
 
+      cli.signal_attach("irc channel join", function (cli, conn, event) {
+        var person = cli.person_new(event.userinfo.nick);
+        person.push_channel(event.parameters[0]);
+      });
+
       cli.signal_attach("irc channel part", function (cli, conn, event) {
         var buf = cli.buffer_find(event.parameters[0]);
         if (buf)
           buf.write_event(event.userinfo.nick + " left");
+      });
+
+      cli.signal_attach("irc channel part", function (cli, conn, event) {
+        var person = cli.person_new(event.userinfo.nick);
+        person.pop_channel(event.parameters[0]);
       });
 
       var message_handler_generic = function (cli, conn, event) {
